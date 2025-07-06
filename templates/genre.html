@@ -11,8 +11,9 @@
       <div class="col-md-4">
         <div class="card mb-4 shadow-sm">
           <a href="{{ url_for('video_page', video_id=vid.id) }}">
-            <video src="{{ url_for('uploaded_file', filepath=vid.filename) }}"
-                   class="card-img-top" controls muted></video>
+            <!-- サムネだけ表示：imgにする -->
+            <img src="{{ url_for('uploaded_file', filepath=vid.filename) }}"
+                 alt="{{ vid.title }}" class="card-img-top">
           </a>
           <div class="card-body">
             <h5 class="card-title">
