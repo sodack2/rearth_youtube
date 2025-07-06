@@ -1,18 +1,25 @@
-<!DOCTYPE html>
-<html>
-<head><title>アップロード</title></head>
-<body>
+{% extends 'base.html' %}
+{% block title %}動画アップロード{% endblock %}
+
+{% block content %}
   <h1>動画アップロード</h1>
   <form method="post" enctype="multipart/form-data">
-    タイトル: <input type="text" name="title"><br>
-    ジャンル:
-    <select name="category">
-      {% for cat in categories %}
-      <option value="{{ cat.id }}">{{ cat.name }}</option>
-      {% endfor %}
-    </select><br>
-    動画: <input type="file" name="file"><br>
-    <button type="submit">アップロード</button>
+    <div class="mb-3">
+      <label class="form-label">タイトル</label>
+      <input type="text" name="title" class="form-control">
+    </div>
+    <div class="mb-3">
+      <label class="form-label">ジャンル</label>
+      <select name="category" class="form-select">
+        {% for cat in categories %}
+          <option value="{{ cat.id }}">{{ cat.name }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="mb-3">
+      <label class="form-label">動画ファイル</label>
+      <input type="file" name="file" class="form-control">
+    </div>
+    <button type="submit" class="btn btn-primary">アップロード</button>
   </form>
-</body>
-</html>
+{% endblock %}
