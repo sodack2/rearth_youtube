@@ -178,8 +178,10 @@ def register():
             return "Username already exists"
         user = User(username=username)
         user.set_password(password)
-        if username == 'sota':  # ✅ ユーザー名が「sota」なら管理者
-            user.is_admin = True
+        if username == 'sota':
+            user.is_admin = True  # ✅ sotaだけ管理者
+        else:
+            user.is_admin = False  # ✅ それ以外は必ずFalse
         db.session.add(user)
         db.session.commit()
         return redirect(url_for('login'))
@@ -214,13 +216,10 @@ with app.app_context():
         ])
         db.session.commit()
 
-    # ✅ sota ユーザーがいなければ作成して管理者に
+    # ✅ sota ユーザーがいなければ最初だけ作成して管理者に
     admin_user = User.query.filter_by(username='sota').first()
     if not admin_user:
         admin = User(username='sota', is_admin=True)
-        admin.set_password('sotapassword')  # ←任意の初期パスワード
+        admin.set_password('sotapassword')  # ←初期パス
         db.session.add(admin)
         db.session.commit()
-
-if __name__ == '__main__':
-    app.run(debug=True)
