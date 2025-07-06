@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html>
+<head><title>アップロード</title></head>
+<body>
+  <h1>動画アップロード</h1>
+  <form method="post" enctype="multipart/form-data">
+    タイトル: <input type="text" name="title"><br>
+    ジャンル:
+    <select name="category">
+      {% for cat in categories %}
+      <option value="{{ cat.id }}">{{ cat.name }}</option>
+      {% endfor %}
+    </select><br>
+    動画: <input type="file" name="file"><br>
+    <button type="submit">アップロード</button>
+  </form>
+</body>
+</html>

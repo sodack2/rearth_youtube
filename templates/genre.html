@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html>
+<head><title>{{ category.name }}</title></head>
+<body>
+  <h1>{{ category.name }}</h1>
+
+  <h2>動画</h2>
+  {% for vid in videos %}
+    <p>{{ vid.title }}</p>
+    <video src="/uploads/{{ vid.filename }}" width="400" controls></video>
+  {% endfor %}
+
+  <h2>掲示板スレッド</h2>
+  {% for th in threads %}
+    <p><a href="{{ url_for('thread', thread_id=th.id) }}">{{ th.title }}</a></p>
+  {% endfor %}
+
+  <h3>新しいスレッド作成</h3>
+  <form method="post" action="{{ url_for('create_thread', category_id=category.id) }}">
+    タイトル: <input type="text" name="title">
+    <button type="submit">作成</button>
+  </form>
+
+  <a href="{{ url_for('index') }}">戻る</a>
+</body>
+</html>

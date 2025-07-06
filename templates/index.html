@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>ジャンル一覧</title>
+</head>
+<body>
+  <h1>ジャンル一覧</h1>
+  {% if current_user.is_authenticated %}
+    <p>ようこそ {{ current_user.username }} | 
+      <a href="{{ url_for('logout') }}">Logout</a> | 
+      <a href="{{ url_for('upload') }}">動画アップロード</a>
+    </p>
+  {% else %}
+    <p><a href="{{ url_for('login') }}">Login</a> | 
+       <a href="{{ url_for('register') }}">Register</a></p>
+  {% endif %}
+
+  <ul>
+    {% for cat in categories %}
+      <li><a href="{{ url_for('genre', category_id=cat.id) }}">{{ cat.name }}</a></li>
+    {% endfor %}
+  </ul>
+
+  <h2>ユーザー一覧（フォロー）</h2>
+  <ul>
+    {% for u in users %}
+      <li>{{ u.username }}
+        {% if current_user.is_authenticated and u.id != current_user.id %}
+          | <a href="{{ url_for('follow', user_id=u.id) }}">Follow</a>
+        {% endif %}
+      </li>
+    {% endfor %}
+  </ul>
+</body>
+</html>
