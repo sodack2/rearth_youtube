@@ -3,55 +3,47 @@
 {% block title %}{{ category.name }}{% endblock %}
 
 {% block content %}
-  <h1 class="mb-4">{{ category.name }}</h1>
+<h1 class="mb-4">{{ category.name }}</h1>
 
-  <h2>動画一覧</h2>
-  <div class="row">
-    {% for vid in videos %}
-      <div class="col-md-4">
-        <div class="card mb-4 shadow-sm">
-          <a href="{{ url_for('video_page', video_id=vid.id) }}">
-            <!-- サムネだけ表示：imgにする -->
-            <img src="{{ url_for('uploaded_file', filepath=vid.filename) }}"
-                 alt="{{ vid.title }}" class="card-img-top">
-          </a>
-          <div class="card-body">
-            <h5 class="card-title">
-              <a href="{{ url_for('video_page', video_id=vid.id) }}">{{ vid.title }}</a>
-            </h5>
-            <p class="card-text">
-              アップロード者: {{ vid.user.username }}<br>
-              投稿日: {{ vid.upload_time.strftime("%Y-%m-%d") }}<br>
-              再生数: {{ vid.view_count }}回
-            </p>
-          </div>
+<h2>動画一覧</h2>
+<div class="row">
+  {% for vid in videos %}
+    <div class="col-md-4">
+      <div class="card mb-4 shadow-sm">
+        <a href="{{ url_for('video_page', video_id=vid.id) }}">
+          <!-- ✅ サムネは thumbnail を使う -->
+          <img src="{{ url_for('uploaded_file', filepath=vid.thumbnail) }}"
+               alt="{{ vid.title }}" class="card-img-top">
+        </a>
+        <div class="card-body">
+          <h5 class="card-title">
+            <a href="{{ url_for('video_page', video_id=vid.id) }}">{{ vid.title }}</a>
+          </h5>
+          <p class="card-text">
+            アップロード者: {{ vid.user.username }}<br>
+            投稿日: {{ vid.upload_time.strftime('%Y-%m-%d') }}<br>
+            再生数: {{ vid.view_count }}回
+          </p>
         </div>
       </div>
-    {% else %}
-      <p>動画がありません。</p>
-    {% endfor %}
-  </div>
-
-  <h2>掲示板スレッド</h2>
-  <ul class="list-group mb-3">
-    {% for th in threads %}
-      <li class="list-group-item">
-        <a href="{{ url_for('thread', thread_id=th.id) }}">{{ th.title }}</a>
-      </li>
-    {% else %}
-      <li class="list-group-item">スレッドがありません。</li>
-    {% endfor %}
-  </ul>
-
-  {% if current_user.is_authenticated %}
-    <h3>新しいスレッド作成</h3>
-    <form method="post" action="{{ url_for('create_thread', category_id=category.id) }}">
-      <div class="mb-3">
-        <input type="text" name="title" class="form-control" placeholder="スレッドタイトル">
-      </div>
-      <button type="submit" class="btn btn-primary">作成</button>
-    </form>
+    </div>
   {% else %}
-    <p><a href="{{ url_for('login') }}">ログイン</a>するとスレッド作成ができます。</p>
-  {% endif %}
+    <p>動画がありません。</p>
+  {% endfor %}
+</div>
+
+<h2>掲示板スレッド</h2>
+<ul class="list-group mb-3">
+  {% for t in threads %}
+    <li class="list-group-item">{{ t.title }}</li>
+  {% else %}
+    <li class="list-group-item">スレッドがありません。</li>
+  {% endfor %}
+</ul>
+
+<h3>新しいスレッド作成</h3>
+<form method="post" action="{{ url_for('create_thread', category_id=category.id) }}">
+  <input type="text" name="title" placeholder="スレッドタイトル" required>
+  <button type="submit">作成</button>
+</form>
 {% endblock %}
