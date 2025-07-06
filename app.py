@@ -1,18 +1,21 @@
 import os
+from datetime import datetime
 from flask import Flask, render_template, request, redirect, url_for, send_from_directory, flash
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
 from werkzeug.security import generate_password_hash, check_password_hash
-from datetime import datetime
 
+# --------------------
+# 設定
+# --------------------
 app = Flask(__name__)
-app.config['UPLOAD_FOLDER'] = 'uploads'
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///database.db'
 app.config['SECRET_KEY'] = 'supersecretkey'
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///database.db'
+app.config['UPLOAD_FOLDER'] = 'uploads'
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 db = SQLAlchemy(app)
-login_manager = LoginManager()
-login_manager.init_app(app)
+login_manager = LoginManager(app)
 login_manager.login_view = 'login'
 
 # --------------------
@@ -22,20 +25,13 @@ class User(UserMixin, db.Model):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(50), unique=True)
     password_hash = db.Column(db.String(200))
-
     videos = db.relationship('Video', backref='user', lazy=True)
     comments = db.relationship('Comment', backref='user', lazy=True)
 
     def set_password(self, password):
         self.password_hash = generate_password_hash(password)
-
     def check_password(self, password):
         return check_password_hash(self.password_hash, password)
-
-class Follow(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    follower_id = db.Column(db.Integer, db.ForeignKey('user.id'))
-    followed_id = db.Column(db.Integer, db.ForeignKey('user.id'))
 
 class Category(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -44,23 +40,12 @@ class Category(db.Model):
 class Video(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     title = db.Column(db.String(100))
-    filename = db.Column(db.String(200))  # genre_folder/filename
+    filename = db.Column(db.String(200))
     category_id = db.Column(db.Integer, db.ForeignKey('category.id'))
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
     view_count = db.Column(db.Integer, default=0)
     upload_time = db.Column(db.DateTime, default=datetime.utcnow)
-
     comments = db.relationship('Comment', backref='video', lazy=True)
-
-class Thread(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    title = db.Column(db.String(100))
-    category_id = db.Column(db.Integer, db.ForeignKey('category.id'))
-
-class Post(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    thread_id = db.Column(db.Integer, db.ForeignKey('thread.id'))
-    content = db.Column(db.Text)
 
 class Comment(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -94,7 +79,7 @@ def upload():
         category = Category.query.get(category_id)
         category_name = category.name
 
-        # ジャンルフォルダ作成
+        # ジャンルフォルダを作成
         genre_folder = os.path.join(app.config['UPLOAD_FOLDER'], category_name)
         os.makedirs(genre_folder, exist_ok=True)
 
@@ -119,10 +104,9 @@ def uploaded_file(filepath):
 
 @app.route('/genre/<int:category_id>')
 def genre(category_id):
-    category = Category.query.get(category_id)
+    category = Category.query.get_or_404(category_id)
     videos = Video.query.filter_by(category_id=category_id).all()
-    threads = Thread.query.filter_by(category_id=category_id).all()
-    return render_template('genre.html', category=category, videos=videos, threads=threads)
+    return render_template('genre.html', category=category, videos=videos)
 
 @app.route('/video/<int:video_id>', methods=['GET', 'POST'])
 def video_page(video_id):
@@ -142,28 +126,8 @@ def video_page(video_id):
     else:
         db.session.commit()
 
-    return render_template('video.html', video=video)
-
-@app.route('/thread/<int:thread_id>', methods=['GET', 'POST'])
-def thread(thread_id):
-    thread = Thread.query.get(thread_id)
-    posts = Post.query.filter_by(thread_id=thread_id).all()
-    if request.method == 'POST':
-        content = request.form['content']
-        post = Post(thread_id=thread_id, content=content)
-        db.session.add(post)
-        db.session.commit()
-        return redirect(url_for('thread', thread_id=thread_id))
-    return render_template('thread.html', thread=thread, posts=posts)
-
-@app.route('/create_thread/<int:category_id>', methods=['POST'])
-@login_required
-def create_thread(category_id):
-    title = request.form['title']
-    new_thread = Thread(title=title, category_id=category_id)
-    db.session.add(new_thread)
-    db.session.commit()
-    return redirect(url_for('genre', category_id=category_id))
+    next_video = Video.query.filter(Video.id > video.id).order_by(Video.id.asc()).first()
+    return render_template('video.html', video=video, next_video=next_video)
 
 @app.route('/register', methods=['GET', 'POST'])
 def register():
@@ -196,22 +160,6 @@ def login():
 @login_required
 def logout():
     logout_user()
-    return redirect(url_for('index'))
-
-@app.route('/follow/<int:user_id>')
-@login_required
-def follow(user_id):
-    user_to_follow = User.query.get(user_id)
-    if not user_to_follow:
-        return "User not found"
-    if current_user.id == user_id:
-        return "You can't follow yourself"
-    existing = Follow.query.filter_by(follower_id=current_user.id, followed_id=user_id).first()
-    if existing:
-        return "Already following"
-    follow = Follow(follower_id=current_user.id, followed_id=user_id)
-    db.session.add(follow)
-    db.session.commit()
     return redirect(url_for('index'))
 
 # --------------------
