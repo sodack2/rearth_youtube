@@ -41,7 +41,7 @@ class Video(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     title = db.Column(db.String(100))
     filename = db.Column(db.String(200))
-    thumbnail = db.Column(db.String(200))  # 追加！
+    thumbnail = db.Column(db.String(200))  # サムネ必須
     category_id = db.Column(db.Integer, db.ForeignKey('category.id'))
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
     view_count = db.Column(db.Integer, default=0)
@@ -84,6 +84,10 @@ def upload():
         file = request.files['file']
         thumbnail = request.files.get('thumbnail')
 
+        if not thumbnail or not thumbnail.filename:
+            flash('サムネイル画像は必須です！')
+            return redirect(url_for('upload'))
+
         category = Category.query.get(category_id)
         category_name = category.name
 
@@ -100,12 +104,7 @@ def upload():
 
         thumb_name = f"{filename}_thumb.jpg"
         thumb_path = os.path.join(thumbnail_folder, thumb_name)
-
-        if thumbnail and thumbnail.filename:
-            thumbnail.save(thumb_path)
-        else:
-            # FFmpeg で 0:01 をキャプチャ
-            os.system(f'ffmpeg -ss 00:00:01 -i "{filepath}" -vframes 1 "{thumb_path}"')
+        thumbnail.save(thumb_path)
 
         video = Video(
             title=title,
