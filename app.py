@@ -7,7 +7,12 @@ from werkzeug.security import generate_password_hash, check_password_hash
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'supersecretkey'
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///database.db'
+
+# ✅ Railwayの環境変数 DATABASE_URL を使う
+DATABASE_URL = os.environ.get('DATABASE_URL')
+if DATABASE_URL.startswith("postgres://"):
+    DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://")
+app.config['SQLALCHEMY_DATABASE_URI'] = DATABASE_URL
 app.config['UPLOAD_FOLDER'] = 'uploads'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
@@ -19,7 +24,7 @@ class User(UserMixin, db.Model):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(50), unique=True)
     password_hash = db.Column(db.String(200))
-    is_admin = db.Column(db.Boolean, default=False)  # ✅ 管理者フラグ
+    is_admin = db.Column(db.Boolean, default=False)
     videos = db.relationship('Video', backref='user', lazy=True)
     comments = db.relationship('Comment', backref='user', lazy=True)
 
@@ -181,7 +186,7 @@ def register():
         if username == 'sota':
             user.is_admin = True  # ✅ sotaだけ管理者
         else:
-            user.is_admin = False  # ✅ それ以外は必ずFalse
+            user.is_admin = False
         db.session.add(user)
         db.session.commit()
         return redirect(url_for('login'))
@@ -216,10 +221,13 @@ with app.app_context():
         ])
         db.session.commit()
 
-    # ✅ sota ユーザーがいなければ最初だけ作成して管理者に
+    # ✅ sotaがいなければ作る
     admin_user = User.query.filter_by(username='sota').first()
     if not admin_user:
         admin = User(username='sota', is_admin=True)
-        admin.set_password('sotapassword')  # ←初期パス
+        admin.set_password('sotapassword')  # 任意の初期パス
         db.session.add(admin)
         db.session.commit()
+
+if __name__ == '__main__':
+    app.run(debug=True)
