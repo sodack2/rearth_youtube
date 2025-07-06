@@ -4,6 +4,13 @@
 
 {% block content %}
   <h1>動画をアップロード</h1>
+  {% with messages = get_flashed_messages() %}
+    {% if messages %}
+      <div class="alert alert-danger">
+        {{ messages[0] }}
+      </div>
+    {% endif %}
+  {% endwith %}
   <form method="POST" enctype="multipart/form-data">
     <div class="mb-3">
       <label>タイトル</label>
@@ -22,8 +29,8 @@
       <input type="file" name="file" class="form-control" required>
     </div>
     <div class="mb-3">
-      <label>サムネイル画像（任意）</label>
-      <input type="file" name="thumbnail" class="form-control">
+      <label>サムネイル画像（必須）</label>
+      <input type="file" name="thumbnail" class="form-control" required>
     </div>
     <button type="submit" class="btn btn-primary">アップロード</button>
   </form>
