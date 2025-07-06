@@ -19,7 +19,7 @@ class User(UserMixin, db.Model):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(50), unique=True)
     password_hash = db.Column(db.String(200))
-    is_admin = db.Column(db.Boolean, default=False)  # ✅ 管理者フラグ追加
+    is_admin = db.Column(db.Boolean, default=False)  # ✅ 管理者フラグ
     videos = db.relationship('Video', backref='user', lazy=True)
     comments = db.relationship('Comment', backref='user', lazy=True)
 
@@ -178,6 +178,8 @@ def register():
             return "Username already exists"
         user = User(username=username)
         user.set_password(password)
+        if username == 'sota':  # ✅ ユーザー名が「sota」なら管理者
+            user.is_admin = True
         db.session.add(user)
         db.session.commit()
         return redirect(url_for('login'))
@@ -210,6 +212,14 @@ with app.app_context():
             Category(name='Life'),
             Category(name='War')
         ])
+        db.session.commit()
+
+    # ✅ sota ユーザーがいなければ作成して管理者に
+    admin_user = User.query.filter_by(username='sota').first()
+    if not admin_user:
+        admin = User(username='sota', is_admin=True)
+        admin.set_password('sotapassword')  # ←任意の初期パスワード
+        db.session.add(admin)
         db.session.commit()
 
 if __name__ == '__main__':
