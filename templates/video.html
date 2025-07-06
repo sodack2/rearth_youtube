@@ -1,0 +1,39 @@
+{% extends 'base.html' %}
+{% block title %}{{ video.title }} - 動画ページ{% endblock %}
+
+{% block content %}
+  <h1>{{ video.title }}</h1>
+  <p>
+    視聴回数: {{ video.view_count }}回 ・ 
+    投稿日: {{ video.upload_time.strftime("%Y-%m-%d") }} ・ 
+    アップロード者: {{ video.user.username }}
+  </p>
+
+  <div class="video-container">
+    <video class="video-player" controls preload="metadata"
+      src="{{ url_for('uploaded_file', filepath=video.filename) }}">
+      お使いのブラウザは video タグをサポートしていません。
+    </video>
+  </div>
+
+  <h2>コメント</h2>
+  {% if current_user.is_authenticated %}
+    <form method="post" class="comment-form">
+      <textarea name="content" rows="4" placeholder="コメントを入力..."></textarea>
+      <br>
+      <button type="submit">コメントを投稿</button>
+    </form>
+  {% else %}
+    <p><a href="{{ url_for('login', next=request.path) }}">ログイン</a>してコメントを投稿しよう！</p>
+  {% endif %}
+
+  <div class="comment-list">
+    {% for comment in video.comments %}
+      <div class="comment-item">
+        <strong>{{ comment.user.username }}</strong>: {{ comment.content }}
+      </div>
+    {% else %}
+      <p>まだコメントがありません。</p>
+    {% endfor %}
+  </div>
+{% endblock %}
