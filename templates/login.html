@@ -1,16 +1,17 @@
-<!DOCTYPE html>
-<html lang="ja">
-<head>
-  <meta charset="UTF-8">
-  <title>Login</title>
-</head>
-<body>
+{% extends 'base.html' %}
+{% block title %}ログイン{% endblock %}
+
+{% block content %}
   <h1>ログイン</h1>
   <form method="post">
-    Username: <input type="text" name="username"><br>
-    Password: <input type="password" name="password"><br>
-    <button type="submit">Login</button>
+    <div class="mb-3">
+      <label class="form-label">Username</label>
+      <input type="text" name="username" class="form-control">
+    </div>
+    <div class="mb-3">
+      <label class="form-label">Password</label>
+      <input type="password" name="password" class="form-control">
+    </div>
+    <button type="submit" class="btn btn-primary">Login</button>
   </form>
-  <a href="{{ url_for('index') }}">戻る</a>
-</body>
-</html>
+{% endblock %}
