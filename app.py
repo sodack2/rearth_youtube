@@ -41,6 +41,7 @@ class Video(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     title = db.Column(db.String(100))
     filename = db.Column(db.String(200))
+    thumbnail = db.Column(db.String(200))  # 追加！
     category_id = db.Column(db.Integer, db.ForeignKey('category.id'))
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
     view_count = db.Column(db.Integer, default=0)
@@ -81,20 +82,35 @@ def upload():
         title = request.form['title']
         category_id = request.form['category']
         file = request.files['file']
+        thumbnail = request.files.get('thumbnail')
 
         category = Category.query.get(category_id)
         category_name = category.name
 
+        # 動画保存
         genre_folder = os.path.join(app.config['UPLOAD_FOLDER'], category_name)
         os.makedirs(genre_folder, exist_ok=True)
-
         filename = file.filename
         filepath = os.path.join(genre_folder, filename)
         file.save(filepath)
 
+        # サムネ保存
+        thumbnail_folder = os.path.join(app.config['UPLOAD_FOLDER'], 'thumbnails')
+        os.makedirs(thumbnail_folder, exist_ok=True)
+
+        thumb_name = f"{filename}_thumb.jpg"
+        thumb_path = os.path.join(thumbnail_folder, thumb_name)
+
+        if thumbnail and thumbnail.filename:
+            thumbnail.save(thumb_path)
+        else:
+            # FFmpeg で 0:01 をキャプチャ
+            os.system(f'ffmpeg -ss 00:00:01 -i "{filepath}" -vframes 1 "{thumb_path}"')
+
         video = Video(
             title=title,
             filename=f"{category_name}/{filename}",
+            thumbnail=f"thumbnails/{thumb_name}",
             category_id=category_id,
             user_id=current_user.id
         )
