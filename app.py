@@ -47,6 +47,11 @@ class Video(db.Model):
     upload_time = db.Column(db.DateTime, default=datetime.utcnow)
     comments = db.relationship('Comment', backref='video', lazy=True)
 
+class Thread(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    title = db.Column(db.String(100))
+    category_id = db.Column(db.Integer, db.ForeignKey('category.id'))
+
 class Comment(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     content = db.Column(db.Text, nullable=False)
@@ -61,6 +66,7 @@ def load_user(user_id):
 # --------------------
 # ルート
 # --------------------
+
 @app.route('/')
 def index():
     categories = Category.query.all()
@@ -79,7 +85,6 @@ def upload():
         category = Category.query.get(category_id)
         category_name = category.name
 
-        # ジャンルフォルダを作成
         genre_folder = os.path.join(app.config['UPLOAD_FOLDER'], category_name)
         os.makedirs(genre_folder, exist_ok=True)
 
@@ -106,7 +111,17 @@ def uploaded_file(filepath):
 def genre(category_id):
     category = Category.query.get_or_404(category_id)
     videos = Video.query.filter_by(category_id=category_id).all()
-    return render_template('genre.html', category=category, videos=videos)
+    threads = Thread.query.filter_by(category_id=category_id).all()
+    return render_template('genre.html', category=category, videos=videos, threads=threads)
+
+@app.route('/create_thread/<int:category_id>', methods=['POST'])
+@login_required
+def create_thread(category_id):
+    title = request.form['title']
+    new_thread = Thread(title=title, category_id=category_id)
+    db.session.add(new_thread)
+    db.session.commit()
+    return redirect(url_for('genre', category_id=category_id))
 
 @app.route('/video/<int:video_id>', methods=['GET', 'POST'])
 def video_page(video_id):
