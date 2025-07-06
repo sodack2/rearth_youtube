@@ -31,19 +31,4 @@
     <p>動画がありません。</p>
   {% endfor %}
 </div>
-
-<h2>掲示板スレッド</h2>
-<ul class="list-group mb-3">
-  {% for t in threads %}
-    <li class="list-group-item">{{ t.title }}</li>
-  {% else %}
-    <li class="list-group-item">スレッドがありません。</li>
-  {% endfor %}
-</ul>
-
-<h3>新しいスレッド作成</h3>
-<form method="post" action="{{ url_for('create_thread', category_id=category.id) }}">
-  <input type="text" name="title" placeholder="スレッドタイトル" required>
-  <button type="submit">作成</button>
-</form>
 {% endblock %}
