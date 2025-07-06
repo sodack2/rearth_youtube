@@ -1,8 +1,9 @@
 import os
-from flask import Flask, render_template, request, redirect, url_for, send_from_directory
+from flask import Flask, render_template, request, redirect, url_for, send_from_directory, flash
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
 from werkzeug.security import generate_password_hash, check_password_hash
+from datetime import datetime
 
 app = Flask(__name__)
 app.config['UPLOAD_FOLDER'] = 'uploads'
@@ -22,18 +23,8 @@ class User(UserMixin, db.Model):
     username = db.Column(db.String(50), unique=True)
     password_hash = db.Column(db.String(200))
 
-    followers = db.relationship(
-        'Follow',
-        foreign_keys='Follow.followed_id',
-        backref='followed',
-        lazy='dynamic'
-    )
-    following = db.relationship(
-        'Follow',
-        foreign_keys='Follow.follower_id',
-        backref='follower',
-        lazy='dynamic'
-    )
+    videos = db.relationship('Video', backref='user', lazy=True)
+    comments = db.relationship('Comment', backref='user', lazy=True)
 
     def set_password(self, password):
         self.password_hash = generate_password_hash(password)
@@ -53,9 +44,13 @@ class Category(db.Model):
 class Video(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     title = db.Column(db.String(100))
-    filename = db.Column(db.String(200))  # genre_folder/filename の形
+    filename = db.Column(db.String(200))  # genre_folder/filename
     category_id = db.Column(db.Integer, db.ForeignKey('category.id'))
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
+    view_count = db.Column(db.Integer, default=0)
+    upload_time = db.Column(db.DateTime, default=datetime.utcnow)
+
+    comments = db.relationship('Comment', backref='video', lazy=True)
 
 class Thread(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -67,9 +62,13 @@ class Post(db.Model):
     thread_id = db.Column(db.Integer, db.ForeignKey('thread.id'))
     content = db.Column(db.Text)
 
-# --------------------
-# ログインマネージャ
-# --------------------
+class Comment(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    content = db.Column(db.Text, nullable=False)
+    timestamp = db.Column(db.DateTime, default=datetime.utcnow)
+    video_id = db.Column(db.Integer, db.ForeignKey('video.id'), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+
 @login_manager.user_loader
 def load_user(user_id):
     return User.query.get(int(user_id))
@@ -95,7 +94,7 @@ def upload():
         category = Category.query.get(category_id)
         category_name = category.name
 
-        # ジャンルフォルダを作成
+        # ジャンルフォルダ作成
         genre_folder = os.path.join(app.config['UPLOAD_FOLDER'], category_name)
         os.makedirs(genre_folder, exist_ok=True)
 
@@ -103,7 +102,6 @@ def upload():
         filepath = os.path.join(genre_folder, filename)
         file.save(filepath)
 
-        # DBには genre/filename で保存
         video = Video(
             title=title,
             filename=f"{category_name}/{filename}",
@@ -115,7 +113,6 @@ def upload():
         return redirect(url_for('index'))
     return render_template('upload.html', categories=categories)
 
-# ✅ ジャンル付きファイルパス対応の配信用ルート
 @app.route('/uploads/<path:filepath>')
 def uploaded_file(filepath):
     return send_from_directory(app.config['UPLOAD_FOLDER'], filepath)
@@ -126,6 +123,26 @@ def genre(category_id):
     videos = Video.query.filter_by(category_id=category_id).all()
     threads = Thread.query.filter_by(category_id=category_id).all()
     return render_template('genre.html', category=category, videos=videos, threads=threads)
+
+@app.route('/video/<int:video_id>', methods=['GET', 'POST'])
+def video_page(video_id):
+    video = Video.query.get_or_404(video_id)
+    video.view_count += 1
+
+    if request.method == 'POST':
+        if not current_user.is_authenticated:
+            flash('コメントを投稿するにはログインしてください。')
+            return redirect(url_for('login', next=request.path))
+        content = request.form.get('content')
+        if content:
+            new_comment = Comment(content=content, video=video, user=current_user)
+            db.session.add(new_comment)
+            db.session.commit()
+            return redirect(url_for('video_page', video_id=video.id))
+    else:
+        db.session.commit()
+
+    return render_template('video.html', video=video)
 
 @app.route('/thread/<int:thread_id>', methods=['GET', 'POST'])
 def thread(thread_id):
