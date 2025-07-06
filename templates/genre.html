@@ -9,7 +9,7 @@
     {% for vid in videos %}
       <div class="col-md-4">
         <div class="card mb-4 shadow-sm">
-          <video src="{{ url_for('uploaded_file', filename=vid.filename) }}" class="card-img-top" controls></video>
+          <video src="{{ url_for('uploaded_file', filepath=vid.filename) }}" class="card-img-top" controls></video>
           <div class="card-body">
             <h5 class="card-title">{{ vid.title }}</h5>
           </div>
@@ -43,3 +43,4 @@
     <p><a href="{{ url_for('login') }}">ログイン</a> するとスレッド作成ができます。</p>
   {% endif %}
 {% endblock %}
+
