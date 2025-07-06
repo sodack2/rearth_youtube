@@ -6,16 +6,21 @@
   <h1>{{ video.title }}</h1>
   <p>視聴回数: {{ video.view_count }}回 ・ 投稿日: {{ video.upload_time.strftime('%Y-%m-%d') }} ・ アップロード者: {{ video.user.username }}</p>
 
-  <!-- ✅ max-width を指定してでかすぎないように -->
   <video src="{{ url_for('uploaded_file', filepath=video.filename) }}"
-         controls
-         style="max-width: 800px; width: 100%; height: auto;">
+         controls style="max-width: 800px; width: 100%; height: auto;">
   </video>
 
   <h2>コメント</h2>
   <ul>
     {% for comment in video.comments %}
-      <li>{{ comment.user.username }}: {{ comment.content }}</li>
+      <li>
+        {{ comment.user.username }}: {{ comment.content }}
+        {% if current_user.is_authenticated and current_user.is_admin %}
+          <form method="post" action="{{ url_for('delete_comment', comment_id=comment.id) }}" style="display:inline;">
+            <button type="submit">削除</button>
+          </form>
+        {% endif %}
+      </li>
     {% else %}
       <li>コメントはまだありません。</li>
     {% endfor %}
@@ -28,6 +33,12 @@
     </form>
   {% else %}
     <p>コメントを投稿するにはログインしてください。</p>
+  {% endif %}
+
+  {% if current_user.is_authenticated and current_user.is_admin %}
+    <form method="post" action="{{ url_for('delete_video', video_id=video.id) }}">
+      <button type="submit">この動画を削除</button>
+    </form>
   {% endif %}
 
   {% if next_video %}
