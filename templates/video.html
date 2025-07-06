@@ -10,7 +10,7 @@
   </p>
 
   <div class="video-container">
-    <video class="video-player" controls preload="metadata"
+    <video id="main-video" class="video-player" controls preload="metadata"
       src="{{ url_for('uploaded_file', filepath=video.filename) }}">
       お使いのブラウザは video タグをサポートしていません。
     </video>
@@ -36,4 +36,13 @@
       <p>まだコメントがありません。</p>
     {% endfor %}
   </div>
+
+  {% if next_video %}
+    <script>
+      const video = document.getElementById('main-video');
+      video.addEventListener('ended', () => {
+        window.location.href = "{{ url_for('video_page', video_id=next_video.id) }}";
+      });
+    </script>
+  {% endif %}
 {% endblock %}
