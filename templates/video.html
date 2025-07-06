@@ -1,48 +1,41 @@
 {% extends 'base.html' %}
-{% block title %}{{ video.title }} - 動画ページ{% endblock %}
+
+{% block title %}{{ video.title }}{% endblock %}
 
 {% block content %}
   <h1>{{ video.title }}</h1>
-  <p>
-    視聴回数: {{ video.view_count }}回 ・ 
-    投稿日: {{ video.upload_time.strftime("%Y-%m-%d") }} ・ 
-    アップロード者: {{ video.user.username }}
-  </p>
+  <p>視聴回数: {{ video.view_count }}回 ・ 投稿日: {{ video.upload_time.strftime('%Y-%m-%d') }} ・ アップロード者: {{ video.user.username }}</p>
 
-  <div class="video-container">
-    <video id="main-video" class="video-player" controls preload="metadata"
-      src="{{ url_for('uploaded_file', filepath=video.filename) }}">
-      お使いのブラウザは video タグをサポートしていません。
-    </video>
-  </div>
+  <!-- ✅ max-width を指定してでかすぎないように -->
+  <video src="{{ url_for('uploaded_file', filepath=video.filename) }}"
+         controls
+         style="max-width: 800px; width: 100%; height: auto;">
+  </video>
 
   <h2>コメント</h2>
+  <ul>
+    {% for comment in video.comments %}
+      <li>{{ comment.user.username }}: {{ comment.content }}</li>
+    {% else %}
+      <li>コメントはまだありません。</li>
+    {% endfor %}
+  </ul>
+
   {% if current_user.is_authenticated %}
-    <form method="post" class="comment-form">
-      <textarea name="content" rows="4" placeholder="コメントを入力..."></textarea>
-      <br>
-      <button type="submit">コメントを投稿</button>
+    <form method="post">
+      <textarea name="content" placeholder="コメントを入力" required></textarea>
+      <button type="submit">送信</button>
     </form>
   {% else %}
-    <p><a href="{{ url_for('login', next=request.path) }}">ログイン</a>してコメントを投稿しよう！</p>
+    <p>コメントを投稿するにはログインしてください。</p>
   {% endif %}
-
-  <div class="comment-list">
-    {% for comment in video.comments %}
-      <div class="comment-item">
-        <strong>{{ comment.user.username }}</strong>: {{ comment.content }}
-      </div>
-    {% else %}
-      <p>まだコメントがありません。</p>
-    {% endfor %}
-  </div>
 
   {% if next_video %}
     <script>
-      const video = document.getElementById('main-video');
-      video.addEventListener('ended', () => {
+      const video = document.querySelector('video');
+      video.onended = function() {
         window.location.href = "{{ url_for('video_page', video_id=next_video.id) }}";
-      });
+      };
     </script>
   {% endif %}
 {% endblock %}
