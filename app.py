@@ -187,12 +187,21 @@ def follow(user_id):
     return redirect(url_for('index'))
 
 # --------------------
-# 起動
+# テーブル初期化（どの起動でも必ず実行）
+# --------------------
+os.makedirs('uploads', exist_ok=True)
+db.create_all()
+
+# 初回だけカテゴリを追加
+if not Category.query.first():
+    db.session.add_all([
+        Category(name='Life'),
+        Category(name='War')
+    ])
+    db.session.commit()
+
+# --------------------
+# ローカル実行用
 # --------------------
 if __name__ == '__main__':
-    os.makedirs('uploads', exist_ok=True)
-    db.create_all()
-    if not Category.query.first():
-        db.session.add_all([Category(name='Life'), Category(name='War')])
-        db.session.commit()
     app.run(debug=True)
