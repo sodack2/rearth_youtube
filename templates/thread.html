@@ -1,18 +1,24 @@
-<!DOCTYPE html>
-<html>
-<head><title>{{ thread.title }}</title></head>
-<body>
+{% extends 'base.html' %}
+{% block title %}{{ thread.title }}{% endblock %}
+
+{% block content %}
   <h1>{{ thread.title }}</h1>
+
   {% for post in posts %}
-    <p>{{ post.content }}</p>
+    <div class="card mb-3">
+      <div class="card-body">
+        {{ post.content }}
+      </div>
+    </div>
+  {% else %}
+    <p>投稿がありません。</p>
   {% endfor %}
 
   <h3>投稿する</h3>
   <form method="post">
-    <textarea name="content"></textarea><br>
-    <button type="submit">送信</button>
+    <div class="mb-3">
+      <textarea name="content" class="form-control"></textarea>
+    </div>
+    <button type="submit" class="btn btn-primary">送信</button>
   </form>
-
-  <a href="{{ url_for('index') }}">戻る</a>
-</body>
-</html>
+{% endblock %}
