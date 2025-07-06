@@ -1,5 +1,5 @@
 import os
-from flask import Flask, render_template, request, redirect, url_for
+from flask import Flask, render_template, request, redirect, url_for, send_from_directory
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -53,7 +53,7 @@ class Category(db.Model):
 class Video(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     title = db.Column(db.String(100))
-    filename = db.Column(db.String(200))
+    filename = db.Column(db.String(200))  # genre_folder/filename の形
     category_id = db.Column(db.Integer, db.ForeignKey('category.id'))
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
 
@@ -92,16 +92,33 @@ def upload():
         category_id = request.form['category']
         file = request.files['file']
 
+        category = Category.query.get(category_id)
+        category_name = category.name
+
+        # ジャンルフォルダを作成
+        genre_folder = os.path.join(app.config['UPLOAD_FOLDER'], category_name)
+        os.makedirs(genre_folder, exist_ok=True)
+
         filename = file.filename
-        os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
-        filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+        filepath = os.path.join(genre_folder, filename)
         file.save(filepath)
 
-        video = Video(title=title, filename=filename, category_id=category_id, user_id=current_user.id)
+        # DBには genre/filename で保存
+        video = Video(
+            title=title,
+            filename=f"{category_name}/{filename}",
+            category_id=category_id,
+            user_id=current_user.id
+        )
         db.session.add(video)
         db.session.commit()
         return redirect(url_for('index'))
     return render_template('upload.html', categories=categories)
+
+# ✅ ジャンル付きファイルパス対応の配信用ルート
+@app.route('/uploads/<path:filepath>')
+def uploaded_file(filepath):
+    return send_from_directory(app.config['UPLOAD_FOLDER'], filepath)
 
 @app.route('/genre/<int:category_id>')
 def genre(category_id):
@@ -131,9 +148,6 @@ def create_thread(category_id):
     db.session.commit()
     return redirect(url_for('genre', category_id=category_id))
 
-# --------------------
-# 登録・ログイン・ログアウト
-# --------------------
 @app.route('/register', methods=['GET', 'POST'])
 def register():
     if request.method == 'POST':
@@ -167,9 +181,6 @@ def logout():
     logout_user()
     return redirect(url_for('index'))
 
-# --------------------
-# フォロー
-# --------------------
 @app.route('/follow/<int:user_id>')
 @login_required
 def follow(user_id):
@@ -187,12 +198,11 @@ def follow(user_id):
     return redirect(url_for('index'))
 
 # --------------------
-# テーブル初期化（アプリケーションコンテキスト付き）
+# DB初期化
 # --------------------
 with app.app_context():
-    os.makedirs('uploads', exist_ok=True)
+    os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
     db.create_all()
-
     if not Category.query.first():
         db.session.add_all([
             Category(name='Life'),
@@ -200,8 +210,5 @@ with app.app_context():
         ])
         db.session.commit()
 
-# --------------------
-# ローカル実行
-# --------------------
 if __name__ == '__main__':
     app.run(debug=True)
