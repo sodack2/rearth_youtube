@@ -1,13 +1,10 @@
 import os
 from datetime import datetime
-from flask import Flask, render_template, request, redirect, url_for, send_from_directory, flash
+from flask import Flask, render_template, request, redirect, url_for, send_from_directory, flash, abort
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
 from werkzeug.security import generate_password_hash, check_password_hash
 
-# --------------------
-# 設定
-# --------------------
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'supersecretkey'
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///database.db'
@@ -18,13 +15,11 @@ db = SQLAlchemy(app)
 login_manager = LoginManager(app)
 login_manager.login_view = 'login'
 
-# --------------------
-# モデル
-# --------------------
 class User(UserMixin, db.Model):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(50), unique=True)
     password_hash = db.Column(db.String(200))
+    is_admin = db.Column(db.Boolean, default=False)  # ✅ 管理者フラグ追加
     videos = db.relationship('Video', backref='user', lazy=True)
     comments = db.relationship('Comment', backref='user', lazy=True)
 
@@ -41,7 +36,7 @@ class Video(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     title = db.Column(db.String(100))
     filename = db.Column(db.String(200))
-    thumbnail = db.Column(db.String(200))  # サムネ必須
+    thumbnail = db.Column(db.String(200))
     category_id = db.Column(db.Integer, db.ForeignKey('category.id'))
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
     view_count = db.Column(db.Integer, default=0)
@@ -64,15 +59,10 @@ class Comment(db.Model):
 def load_user(user_id):
     return User.query.get(int(user_id))
 
-# --------------------
-# ルート
-# --------------------
-
 @app.route('/')
 def index():
     categories = Category.query.all()
-    users = User.query.all()
-    return render_template('index.html', categories=categories, users=users)
+    return render_template('index.html', categories=categories)
 
 @app.route('/upload', methods=['GET', 'POST'])
 @login_required
@@ -91,14 +81,12 @@ def upload():
         category = Category.query.get(category_id)
         category_name = category.name
 
-        # 動画保存
         genre_folder = os.path.join(app.config['UPLOAD_FOLDER'], category_name)
         os.makedirs(genre_folder, exist_ok=True)
         filename = file.filename
         filepath = os.path.join(genre_folder, filename)
         file.save(filepath)
 
-        # サムネ保存
         thumbnail_folder = os.path.join(app.config['UPLOAD_FOLDER'], 'thumbnails')
         os.makedirs(thumbnail_folder, exist_ok=True)
 
@@ -159,6 +147,28 @@ def video_page(video_id):
     next_video = Video.query.filter(Video.id > video.id).order_by(Video.id.asc()).first()
     return render_template('video.html', video=video, next_video=next_video)
 
+@app.route('/admin/delete_comment/<int:comment_id>', methods=['POST'])
+@login_required
+def delete_comment(comment_id):
+    if not current_user.is_admin:
+        abort(403)
+
+    comment = Comment.query.get_or_404(comment_id)
+    db.session.delete(comment)
+    db.session.commit()
+    return redirect(request.referrer or url_for('index'))
+
+@app.route('/admin/delete_video/<int:video_id>', methods=['POST'])
+@login_required
+def delete_video(video_id):
+    if not current_user.is_admin:
+        abort(403)
+
+    video = Video.query.get_or_404(video_id)
+    db.session.delete(video)
+    db.session.commit()
+    return redirect(url_for('index'))
+
 @app.route('/register', methods=['GET', 'POST'])
 def register():
     if request.method == 'POST':
@@ -192,9 +202,6 @@ def logout():
     logout_user()
     return redirect(url_for('index'))
 
-# --------------------
-# DB初期化
-# --------------------
 with app.app_context():
     os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
     db.create_all()
